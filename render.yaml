@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: whiteboard-server
+    env: node
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: CLIENT_URL
+        value: https://client-qv9fxs5wc-kamechans-projects.vercel.app
+      - key: NODE_ENV
+        value: production
