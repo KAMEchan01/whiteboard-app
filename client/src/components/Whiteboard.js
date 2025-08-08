@@ -93,17 +93,26 @@ const Whiteboard = ({ roomId }) => {
       });
     };
 
-    const initialResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 60;
-    };
-
-    initialResize();
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 60;
+    
     window.addEventListener('resize', resizeCanvas);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    strokes.forEach(stroke => {
+      drawStroke(ctx, stroke);
+    });
   }, [strokes]);
 
   const startDrawing = (e) => {
@@ -129,10 +138,25 @@ const Whiteboard = ({ roomId }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    const prevPoint = currentStrokeRef.current.points[currentStrokeRef.current.points.length - 1];
     currentStrokeRef.current.points.push({ x, y });
 
     const ctx = canvas.getContext('2d');
-    drawStroke(ctx, currentStrokeRef.current);
+    ctx.beginPath();
+    ctx.strokeStyle = currentStrokeRef.current.color;
+    ctx.lineWidth = currentStrokeRef.current.size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    if (currentStrokeRef.current.tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    
+    ctx.moveTo(prevPoint.x, prevPoint.y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
   };
 
   const stopDrawing = () => {
