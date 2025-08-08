@@ -9,6 +9,7 @@ const Whiteboard = ({ roomId }) => {
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#000000');
   const [size, setSize] = useState(3);
+  const [strokes, setStrokes] = useState([]);
 
   useEffect(() => {
     const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
@@ -17,26 +18,35 @@ const Whiteboard = ({ roomId }) => {
 
     newSocket.emit('join-room', roomId);
 
-    newSocket.on('room-state', (strokes) => {
+    newSocket.on('room-state', (receivedStrokes) => {
+      setStrokes(receivedStrokes);
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      strokes.forEach(stroke => {
-        drawStroke(ctx, stroke);
-      });
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        receivedStrokes.forEach(stroke => {
+          drawStroke(ctx, stroke);
+        });
+      }
     });
 
     newSocket.on('new-stroke', (stroke) => {
+      setStrokes(prev => [...prev, stroke]);
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      drawStroke(ctx, stroke);
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        drawStroke(ctx, stroke);
+      }
     });
 
     newSocket.on('board-cleared', () => {
+      setStrokes([]);
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
     });
 
     return () => {
@@ -46,20 +56,33 @@ const Whiteboard = ({ roomId }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    if (!canvas) return;
     
     const resizeCanvas = () => {
+      const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 60;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.putImageData(imageData, 0, 0);
+      
+      strokes.forEach(stroke => {
+        drawStroke(ctx, stroke);
+      });
+    };
+
+    const initialResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight - 60;
     };
 
-    resizeCanvas();
+    initialResize();
     window.addEventListener('resize', resizeCanvas);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, []);
+  }, [strokes]);
 
   const drawStroke = (ctx, stroke) => {
     if (stroke.points.length < 2) return;
@@ -114,6 +137,7 @@ const Whiteboard = ({ roomId }) => {
 
   const stopDrawing = () => {
     if (isDrawing && socket && currentStroke.points.length > 1) {
+      setStrokes(prev => [...prev, currentStroke]);
       socket.emit('draw-stroke', {
         roomId,
         stroke: currentStroke
@@ -177,7 +201,15 @@ const Whiteboard = ({ roomId }) => {
         </div>
 
         <div className="room-info">
-          ルーム: {roomId}
+          <span className="room-label">ルーム番号:</span>
+          <span className="room-id">{roomId}</span>
+          <button 
+            className="copy-btn" 
+            onClick={() => navigator.clipboard.writeText(roomId)}
+            title="ルーム番号をコピー"
+          >
+            📋
+          </button>
         </div>
       </div>
       

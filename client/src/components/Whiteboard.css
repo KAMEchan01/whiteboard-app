@@ -64,6 +64,40 @@
   margin-left: auto;
   font-size: 14px;
   color: #bdc3c7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #34495e;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+.room-label {
+  font-weight: normal;
+  color: #bdc3c7;
+}
+
+.room-id {
+  font-weight: bold;
+  color: #3498db;
+  font-family: monospace;
+  background-color: #2c3e50;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.copy-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #3498db;
 }
 
 canvas {
@@ -90,7 +124,16 @@ canvas {
   .room-info {
     font-size: 12px;
     margin-left: 0;
+    margin-top: 8px;
     width: 100%;
-    text-align: center;
+    justify-content: center;
+  }
+  
+  .room-id {
+    font-size: 11px;
+  }
+  
+  .copy-btn {
+    font-size: 14px;
   }
 }
