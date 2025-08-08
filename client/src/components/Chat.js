@@ -43,10 +43,22 @@ const Chat = ({ roomId, username }) => {
     newSocket.on('new-message', (message) => {
       console.log('Received new message:', message);
       if (message && message.content) {
-        // Only add if it's not from current user (to avoid duplicates)
-        if (message.userId !== newSocket.id) {
-          setMessages(prev => [...prev, message]);
-        }
+        setMessages(prev => {
+          // Check if message already exists (avoid duplicates)
+          const exists = prev.some(m => 
+            m.id === message.id || 
+            (m.content === message.content && 
+             m.username === message.username && 
+             Math.abs(new Date(m.timestamp) - new Date(message.timestamp)) < 1000)
+          );
+          
+          if (exists) {
+            console.log('Duplicate message ignored');
+            return prev;
+          }
+          
+          return [...prev, message];
+        });
       }
     });
 
@@ -68,22 +80,9 @@ const Chat = ({ roomId, username }) => {
       return;
     }
 
-    console.log('Sending message:', messageText);
-    
-    // Create message immediately for sender
-    const newMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: messageText,
-      timestamp: new Date(),
-      username: username,
-      userId: socket.id
-    };
+    console.log('Sending message to room:', roomId, 'message:', messageText);
 
-    // Add to local messages immediately
-    setMessages(prev => [...prev, newMessage]);
-
-    // Send to server
+    // Send to server first
     socket.emit('send-message', {
       roomId,
       message: messageText,
