@@ -39,6 +39,7 @@
   border-radius: 5px;
   font-size: 1rem;
   min-width: 250px;
+  margin-bottom: 0.5rem;
 }
 
 .room-controls button {
@@ -52,14 +53,23 @@
   transition: background 0.3s;
 }
 
-.room-controls button:hover {
+.room-controls button:hover:not(:disabled) {
   background: #45a049;
+}
+
+.room-controls button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
 }
 
 .room-controls button:last-child {
   background: #2196F3;
 }
 
-.room-controls button:last-child:hover {
+.room-controls button:last-child:hover:not(:disabled) {
   background: #1976D2;
+}
+
+.room-controls button:last-child:disabled {
+  background: #cccccc;
 }
