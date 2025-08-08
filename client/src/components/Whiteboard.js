@@ -118,12 +118,21 @@ const Whiteboard = ({ roomId }) => {
     });
   }, [strokes]);
 
-  const startDrawing = (e) => {
-    setIsDrawing(true);
+  const getEventPosition = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const startDrawing = (e) => {
+    e.preventDefault();
+    setIsDrawing(true);
+    const { x, y } = getEventPosition(e);
     
     currentStrokeRef.current = {
       tool,
@@ -134,18 +143,14 @@ const Whiteboard = ({ roomId }) => {
   };
 
   const draw = (e) => {
+    e.preventDefault();
     if (!isDrawing || !currentStrokeRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
+    const { x, y } = getEventPosition(e);
     const prevPoint = currentStrokeRef.current.points[currentStrokeRef.current.points.length - 1];
     currentStrokeRef.current.points.push({ x, y });
 
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
+    const ctx = canvasRef.current.getContext('2d');
     ctx.strokeStyle = currentStrokeRef.current.color;
     ctx.lineWidth = currentStrokeRef.current.size;
     ctx.lineCap = 'round';
@@ -157,12 +162,14 @@ const Whiteboard = ({ roomId }) => {
       ctx.globalCompositeOperation = 'source-over';
     }
     
+    ctx.beginPath();
     ctx.moveTo(prevPoint.x, prevPoint.y);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e) => {
+    if (e) e.preventDefault();
     if (isDrawing && socket && currentStrokeRef.current && currentStrokeRef.current.points.length > 1) {
       setStrokes(prev => [...prev, currentStrokeRef.current]);
       socket.emit('draw-stroke', {
@@ -245,7 +252,13 @@ const Whiteboard = ({ roomId }) => {
         onMouseMove={draw}
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
-        style={{ cursor: tool === 'eraser' ? 'crosshair' : 'crosshair' }}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+        style={{ 
+          cursor: tool === 'eraser' ? 'crosshair' : 'crosshair',
+          touchAction: 'none'
+        }}
       />
     </div>
   );
