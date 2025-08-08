@@ -23,19 +23,25 @@ const Chat = ({ roomId, username }) => {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
+      console.log('Socket connected');
       setIsConnected(true);
-      newSocket.emit('join-room', { roomId, username });
+      const joinData = { roomId, username };
+      console.log('Joining room:', joinData);
+      newSocket.emit('join-room', joinData);
     });
 
     newSocket.on('disconnect', () => {
+      console.log('Socket disconnected');
       setIsConnected(false);
     });
 
     newSocket.on('room-state', (chatHistory) => {
+      console.log('Received room state:', chatHistory);
       setMessages(Array.isArray(chatHistory) ? chatHistory : []);
     });
 
     newSocket.on('new-message', (message) => {
+      console.log('Received new message:', message);
       if (message && message.content) {
         setMessages(prev => [...prev, message]);
       }
@@ -52,13 +58,25 @@ const Chat = ({ roomId, username }) => {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !socket || !isConnected) return;
+    console.log('Send message attempt:', { inputMessage, socket: !!socket, isConnected, roomId, username });
+    
+    if (!inputMessage.trim() || !socket || !isConnected) {
+      console.log('Send message blocked:', { 
+        hasMessage: !!inputMessage.trim(), 
+        hasSocket: !!socket, 
+        isConnected 
+      });
+      return;
+    }
 
-    socket.emit('send-message', {
+    const messageData = {
       roomId,
       message: inputMessage.trim(),
       username
-    });
+    };
+    
+    console.log('Sending message:', messageData);
+    socket.emit('send-message', messageData);
 
     setInputMessage('');
   };
