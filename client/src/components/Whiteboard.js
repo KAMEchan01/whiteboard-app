@@ -10,6 +10,29 @@ const Whiteboard = ({ roomId }) => {
   const [color, setColor] = useState('#000000');
   const [size, setSize] = useState(3);
   const [strokes, setStrokes] = useState([]);
+  let currentStroke = null;
+
+  const drawStroke = (ctx, stroke) => {
+    if (stroke.points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (stroke.tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    for (let i = 1; i < stroke.points.length; i++) {
+      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    ctx.stroke();
+  };
 
   useEffect(() => {
     const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
@@ -59,12 +82,11 @@ const Whiteboard = ({ roomId }) => {
     if (!canvas) return;
     
     const resizeCanvas = () => {
-      const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight - 60;
       
       const ctx = canvas.getContext('2d');
-      ctx.putImageData(imageData, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       strokes.forEach(stroke => {
         drawStroke(ctx, stroke);
@@ -83,28 +105,6 @@ const Whiteboard = ({ roomId }) => {
       window.removeEventListener('resize', resizeCanvas);
     };
   }, [strokes]);
-
-  const drawStroke = (ctx, stroke) => {
-    if (stroke.points.length < 2) return;
-
-    ctx.beginPath();
-    ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.size;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    if (stroke.tool === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-    } else {
-      ctx.globalCompositeOperation = 'source-over';
-    }
-
-    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-    for (let i = 1; i < stroke.points.length; i++) {
-      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-    }
-    ctx.stroke();
-  };
 
   const startDrawing = (e) => {
     setIsDrawing(true);
@@ -151,8 +151,6 @@ const Whiteboard = ({ roomId }) => {
       socket.emit('clear-board', roomId);
     }
   };
-
-  let currentStroke = null;
 
   return (
     <div className="whiteboard-container">
