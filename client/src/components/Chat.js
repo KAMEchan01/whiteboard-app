@@ -43,7 +43,10 @@ const Chat = ({ roomId, username }) => {
     newSocket.on('new-message', (message) => {
       console.log('Received new message:', message);
       if (message && message.content) {
-        setMessages(prev => [...prev, message]);
+        // Only add if it's not from current user (to avoid duplicates)
+        if (message.userId !== newSocket.id) {
+          setMessages(prev => [...prev, message]);
+        }
       }
     });
 
@@ -58,25 +61,34 @@ const Chat = ({ roomId, username }) => {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    console.log('Send message attempt:', { inputMessage, socket: !!socket, isConnected, roomId, username });
     
-    if (!inputMessage.trim() || !socket || !isConnected) {
-      console.log('Send message blocked:', { 
-        hasMessage: !!inputMessage.trim(), 
-        hasSocket: !!socket, 
-        isConnected 
-      });
+    const messageText = inputMessage.trim();
+    if (!messageText || !socket) {
+      console.log('Cannot send message:', { hasText: !!messageText, hasSocket: !!socket });
       return;
     }
 
-    const messageData = {
-      roomId,
-      message: inputMessage.trim(),
-      username
-    };
+    console.log('Sending message:', messageText);
     
-    console.log('Sending message:', messageData);
-    socket.emit('send-message', messageData);
+    // Create message immediately for sender
+    const newMessage = {
+      id: Date.now(),
+      type: 'user',
+      content: messageText,
+      timestamp: new Date(),
+      username: username,
+      userId: socket.id
+    };
+
+    // Add to local messages immediately
+    setMessages(prev => [...prev, newMessage]);
+
+    // Send to server
+    socket.emit('send-message', {
+      roomId,
+      message: messageText,
+      username
+    });
 
     setInputMessage('');
   };
