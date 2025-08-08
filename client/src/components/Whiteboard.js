@@ -4,13 +4,13 @@ import './Whiteboard.css';
 
 const Whiteboard = ({ roomId }) => {
   const canvasRef = useRef(null);
+  const currentStrokeRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [socket, setSocket] = useState(null);
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#000000');
   const [size, setSize] = useState(3);
   const [strokes, setStrokes] = useState([]);
-  let currentStroke = null;
 
   const drawStroke = (ctx, stroke) => {
     if (stroke.points.length < 2) return;
@@ -113,7 +113,7 @@ const Whiteboard = ({ roomId }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    currentStroke = {
+    currentStrokeRef.current = {
       tool,
       color: tool === 'eraser' ? '#FFFFFF' : color,
       size: tool === 'eraser' ? size * 3 : size,
@@ -122,28 +122,29 @@ const Whiteboard = ({ roomId }) => {
   };
 
   const draw = (e) => {
-    if (!isDrawing) return;
+    if (!isDrawing || !currentStrokeRef.current) return;
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    currentStroke.points.push({ x, y });
+    currentStrokeRef.current.points.push({ x, y });
 
     const ctx = canvas.getContext('2d');
-    drawStroke(ctx, currentStroke);
+    drawStroke(ctx, currentStrokeRef.current);
   };
 
   const stopDrawing = () => {
-    if (isDrawing && socket && currentStroke.points.length > 1) {
-      setStrokes(prev => [...prev, currentStroke]);
+    if (isDrawing && socket && currentStrokeRef.current && currentStrokeRef.current.points.length > 1) {
+      setStrokes(prev => [...prev, currentStrokeRef.current]);
       socket.emit('draw-stroke', {
         roomId,
-        stroke: currentStroke
+        stroke: currentStrokeRef.current
       });
     }
     setIsDrawing(false);
+    currentStrokeRef.current = null;
   };
 
   const clearBoard = () => {
