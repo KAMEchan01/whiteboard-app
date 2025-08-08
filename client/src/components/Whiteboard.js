@@ -13,11 +13,11 @@ const Whiteboard = ({ roomId }) => {
   const [strokes, setStrokes] = useState([]);
 
   const drawStroke = (ctx, stroke) => {
-    if (stroke.points.length < 2) return;
+    if (!stroke || !stroke.points || stroke.points.length < 2) return;
 
     ctx.beginPath();
-    ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.size;
+    ctx.strokeStyle = stroke.color || '#000000';
+    ctx.lineWidth = stroke.size || 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -42,24 +42,27 @@ const Whiteboard = ({ roomId }) => {
     newSocket.emit('join-room', roomId);
 
     newSocket.on('room-state', (receivedStrokes) => {
-      setStrokes(receivedStrokes);
+      const validStrokes = Array.isArray(receivedStrokes) ? receivedStrokes.filter(stroke => stroke && stroke.points) : [];
+      setStrokes(validStrokes);
       const canvas = canvasRef.current;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        receivedStrokes.forEach(stroke => {
+        validStrokes.forEach(stroke => {
           drawStroke(ctx, stroke);
         });
       }
     });
 
     newSocket.on('new-stroke', (stroke) => {
-      setStrokes(prev => [...prev, stroke]);
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        drawStroke(ctx, stroke);
+      if (stroke && stroke.points) {
+        setStrokes(prev => [...prev, stroke]);
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          drawStroke(ctx, stroke);
+        }
       }
     });
 
@@ -88,7 +91,7 @@ const Whiteboard = ({ roomId }) => {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      strokes.forEach(stroke => {
+      strokes.filter(stroke => stroke && stroke.points).forEach(stroke => {
         drawStroke(ctx, stroke);
       });
     };
@@ -110,7 +113,7 @@ const Whiteboard = ({ roomId }) => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    strokes.forEach(stroke => {
+    strokes.filter(stroke => stroke && stroke.points).forEach(stroke => {
       drawStroke(ctx, stroke);
     });
   }, [strokes]);
